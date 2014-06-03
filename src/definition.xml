@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Module>
+	<ModulePrefs title="Resourcescan Gadget" description="Use this gadget to load a webpage into your dashboard." thumbnail="displayUrlThm.png"/>
+	<gadget_version>
+		1.0
+	</gadget_version>
+	<grid_info>
+		<supported_versions>
+			7.3
+		</supported_versions>
+		<supported_platforms>
+			windows,linux
+		</supported_platforms>
+		<requires_agent_scripts>
+			false
+		</requires_agent_scripts>
+		<upgrade_in_place>
+			true
+		</upgrade_in_place>
+	</grid_info>
+	<Content type="html">
+	<![CDATA[
+	<style scoped="scoped">
+		div {
+			font-family: Verdana, Arial, Helvetica, sans-serif;
+			font-size: 9px;
+		}
+		#error {
+			padding: 5px;
+			display: none;
+			width: 100%;
+			margin-left: auto;
+			margin-right: auto;
+		}
+		#dest {
+			background-image: url("__UPTIME_GADGET_BASE__/spinner.gif");
+			background-position: 5px 5px;
+			background-repeat: no-repeat;
+			width: 100%;
+		}
+		#edit {
+			padding: 5px;
+			display: none;
+			width: 100%;
+			height: 100%;
+		}
+		input[type=text],label,select,button {
+			max-width: 300px;
+			margin-bottom: 3px;
+			display: block;
+			clear: both;
+		}
+		select {
+			width: 80px;
+		}
+		input[type=text] {
+			width: 100%;
+		}
+		#eg {
+			color: rgba(0, 0, 0, 0.5);
+		}
+		#refreshInterval {
+			padding-left: 6px;
+			display: none;
+		}
+		#minutePlural {
+			display: none;
+		}
+	</style>
+	<div id="error"></div>
+	<div id="dest"></div>
+	<div id="edit">
+		<div id = "availableGroups">
+			<select id="elementGroupId" class="select">
+				<option value="-1">Loading...</option>
+			</select>
+			</div>
+		<label for="scroll">Scroll bars:</label>
+		<select id="scroll">
+			<option value="auto">Auto</option>
+			<option value="yes">Always</option>
+			<option value="no">Never</option>
+		</select>
+		<label for="refreshRate">Refresh Rate:</label>
+		<select id="refreshRate" name="refreshRate">
+			<option value="30">30s</option>
+			<option value="60">1m</option>
+			<option value="300">5m</option>
+			<option value="600">10m</option>
+			<option value="900">15m</option>
+			<option value="3600">1h</option>
+			<option value="-1">Never</option>
+		</select>
+		<button id="save">Save</button>
+	</div>
+	#includeResources(jquery)
+	<script type="text/javascript" src="__UPTIME_GADGET_BASE__/apiQueries.js?v=1"></script>
+	<script>
+		$("#save").click(function() {
+			$(this).prop("disabled", true);
+			var settings = {
+				groupId: $('#elementGroupId').val(),
+				scroll: $("#scroll").val()
+			};
+			settings.iframeUrl = "/main.php?section=GlobalScanResourceScan&subsection=list&id=".concat(settings.groupId);
+			settings.refreshInterval = $("#refreshRate").val();
+			if (!settings.groupId) {
+				$("#error").empty();
+				uptimeErrorFormatter.getErrorBox("Please select an Element Group").appendTo('#error');
+				$("#error").slideDown();
+				$("#save").prop("disabled", false);
+			} else {
+				$("#error").empty().slideUp();
+				uptimeGadget.saveSettings(settings).then(doRender, doError);
+			}
+		});
+		uptimeGadget.registerOnResizeHandler(function(dimensions) {
+			$("#frame").height(dimensions.height).width(dimensions.width);
+			$("#dest").data("dimensions", dimensions);
+		});
+		uptimeGadget.registerOnEditHandler(function() {
+			$("#edit").hide();
+			var dest = $("#dest");
+			var interval = dest.data("interval");
+			if (interval) {
+				clearInterval(interval);
+			}
+			dest.empty()
+				.removeData("interval")
+				.css("background-position", "5px 5px")
+				.show();
+			uptimeGadget.loadSettings().then(function(settings) {
+				editSettings(settings);
+			});
+		});
+		uptimeGadget.registerOnLoadHandler(function(onLoadData) {
+			$("#dest").data("dimensions", onLoadData.dimensions);
+			if (onLoadData.hasPreloadedSettings()) {
+				doRender(onLoadData.settings);
+			} else {
+				uptimeGadget.loadSettings(doRender, doError);
+			}
+		});
+		function isUrl(url) {
+			return /^(https?|ftp):\/\/(((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:)*@)?(((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5]))|((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)*(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?)(:\d*)?)(\/((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)+(\/(([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)*)*)?)?(\?((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)|[\uE000-\uF8FF]|\/|\?)*)?(\#((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)|\/|\?)*)?$/i.test(url);
+		}
+
+		function groupSort(arg1, arg2) {
+			return naturalSort(arg1.name, arg2.name);
+		}
+
+		function populateIdSelector() {
+		var api = new apiQueries();
+        $('#elementGroupId').empty().append($("<option />").val(-1).text("Loading..."));
+        return api.getAllGroups().then(function(groups) {
+            // fill in element drop down list
+            groups.sort(groupSort);
+            var groupSelector = $('#elementGroupId').empty();
+            var hasMyInfrastructure = false;
+            $.each(groups, function() {
+                groupSelector.append($("<option />").val(this.id).text(this.name));
+                if (this.id == 1) {
+                    hasMyInfrastructure = true;
+                }
+            });
+            if (groupStatusSettings.groupId >= 0) {
+                groupSelector.val(groupStatusSettings.groupId);
+            } else if (hasMyInfrastructure) {
+                groupSelector.val(1);
+            }
+        });
+    }
+		function editSettings(settings) {
+			$("#save").prop("disabled", false);
+			$("#error").empty().slideUp();
+			$("#dest").hide();
+			$("#edit").show();
+			$("#scroll").val(settings ? settings.scroll : "auto");
+			if (settings && settings.refreshInterval) {
+				$("#refreshRate").val(settings.refreshInterval);
+			} else {
+				$("#refreshRate").val(-1);
+			}
+			return populateIdSelector().then(function() {
+				alert(settings.groupId);
+				$('#elementGroupId').val(settings ? settings.groupId : "-1");
+		}, function(error) {
+			displayStatusBar(error, "Error Loading the List of Groups from up.time Controller");
+		});
+		}
+		function doRender(settings) {
+			var dest = $("#dest");
+			if (settings && settings.iframeUrl) {
+				$("#edit").hide();
+				dest.empty()
+						.css("background-position", "-9999px -9999px")
+						.append($('<iframe id="frame"></iframe>')
+						.prop("src", settings.iframeUrl)
+						.prop("scrolling", settings.scroll)
+						.height(dest.data("dimensions").height)
+						.width(dest.data("dimensions").width))
+						.show();
+				if (settings.refreshInterval && settings.refreshInterval > 0) {
+					dest.data("interval", setInterval(function() {
+						$("#frame").prop("src", settings.iframeUrl);
+					}, settings.refreshInterval * 1000));
+				}
+			} else {
+				editSettings(settings);
+			}
+		}
+		function doError(status) {
+			$("#error").empty();
+			uptimeErrorFormatter.getErrorBox(status, "Error communicating with up.time").appendTo('#error');
+			$("#error").slideDown();
+			$("#save").prop("disabled", false);
+		}
+	</script>
+	]]>
+	</Content>
+</Module>
