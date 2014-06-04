@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Module>
-	<ModulePrefs title="Resourcescan Gadget" description="Use this gadget to load a webpage into your dashboard." thumbnail="displayUrlThm.png"/>
+	<ModulePrefs title="Resourcescan Gadget" description="Use this gadget to easily display the ResourceScan Dashboard in your own custom dashboards." thumbnail="ResourceScanThm.png"/>
 	<gadget_version>
 		1.0
 	</gadget_version>
@@ -51,7 +51,7 @@
 			clear: both;
 		}
 		select {
-			width: 80px;
+			width: 180px;
 		}
 		input[type=text] {
 			width: 100%;
@@ -71,7 +71,7 @@
 	<div id="dest"></div>
 	<div id="edit">
 		<div id = "availableGroups">
-			<select id="elementGroupId" class="select">
+			<select id="elementGroupId">
 				<option value="-1">Loading...</option>
 			</select>
 			</div>
@@ -149,7 +149,7 @@
 			return naturalSort(arg1.name, arg2.name);
 		}
 
-		function populateIdSelector() {
+		function populateIdSelector(selected_groupId) {
 		var api = new apiQueries();
         $('#elementGroupId').empty().append($("<option />").val(-1).text("Loading..."));
         return api.getAllGroups().then(function(groups) {
@@ -163,8 +163,9 @@
                     hasMyInfrastructure = true;
                 }
             });
-            if (groupStatusSettings.groupId >= 0) {
-                groupSelector.val(groupStatusSettings.groupId);
+
+            if (selected_groupId >= 0) {
+                groupSelector.val(selected_groupId);
             } else if (hasMyInfrastructure) {
                 groupSelector.val(1);
             }
@@ -181,9 +182,8 @@
 			} else {
 				$("#refreshRate").val(-1);
 			}
-			return populateIdSelector().then(function() {
-				alert(settings.groupId);
-				$('#elementGroupId').val(settings ? settings.groupId : "-1");
+			return populateIdSelector(settings.groupId).then(function() {
+				null;
 		}, function(error) {
 			displayStatusBar(error, "Error Loading the List of Groups from up.time Controller");
 		});
