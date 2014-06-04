@@ -164,7 +164,7 @@
                 }
             });
 
-            if (selected_groupId >= 0) {
+            if (selected_groupId > 0) {
                 groupSelector.val(selected_groupId);
             } else if (hasMyInfrastructure) {
                 groupSelector.val(1);
@@ -182,7 +182,12 @@
 			} else {
 				$("#refreshRate").val(-1);
 			}
-			return populateIdSelector(settings.groupId).then(function() {
+			var selected_groupId = -1;
+			if (settings && settings.groupId)
+			{
+				selected_groupId = settings.groupId;
+			}
+			return populateIdSelector(selected_groupId).then(function() {
 				null;
 		}, function(error) {
 			displayStatusBar(error, "Error Loading the List of Groups from up.time Controller");
